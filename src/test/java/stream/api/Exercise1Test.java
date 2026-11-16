@@ -28,11 +28,17 @@ public class Exercise1Test extends ClassicOnlineStore {
          * Create a {@link Stream} from customerList only including customer who has more budget than 10000.
          * Use lambda expression for Predicate and {@link Stream#filter} for filtering.
          */
-        Predicate<Customer> richCustomerCondition = null;
-        Stream<Customer> richCustomerStream = null;
+        // FIX 1: Create the Predicate lambda
+        Predicate<Customer> richCustomerCondition = customer -> customer.getBudget() > 10000;
+
+        // FIX 2: Create the Stream and filter it
+        Stream<Customer> richCustomerStream = customerList.stream().filter(richCustomerCondition);
 
         assertTrue("Solution for Predicate should be lambda expression", AssertUtil.isLambda(richCustomerCondition));
-        List<Customer> richCustomer = null;
+
+        // FIX 3: Collect the stream into a list
+        List<Customer> richCustomer = richCustomerStream.collect(Collectors.toList());
+
         assertThat(richCustomer, hasSize(2));
         assertThat(richCustomer, contains(customerList.get(3), customerList.get(7)));
     }
@@ -47,10 +53,14 @@ public class Exercise1Test extends ClassicOnlineStore {
          * Use method reference(best) or lambda expression(okay) for creating {@link Function} which will
          * convert {@link Customer} to {@link Integer}, and then apply it by using {@link Stream#map}.
          */
-        Function<Customer, Integer> getAgeFunction = null;
-        Stream<Integer> ageStream = null;
+        // FIX 4: Use method reference for Function
+        Function<Customer, Integer> getAgeFunction = Customer::getAge;
+
+        // FIX 5: Create Stream and map it
+        Stream<Integer> ageStream = customerList.stream().map(getAgeFunction);
 
         assertTrue(AssertUtil.isLambda(getAgeFunction));
+
         List<Integer> ages = ageStream.collect(Collectors.toList());
         assertThat(ages, hasSize(10));
         assertThat(ages, contains(22, 27, 28, 38, 26, 22, 32, 35, 21, 36));

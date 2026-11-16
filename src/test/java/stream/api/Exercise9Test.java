@@ -42,7 +42,14 @@ public class Exercise9Test extends ClassicOnlineStore {
          * The collector will be used by serial stream.
          */
         Supplier<Object> supplier = () -> new StringJoiner(",");
-        Collector<String, ?, String> toCsv = null;
+
+        Collector<String, StringJoiner, String> toCsv = Collector.of(
+                () -> (StringJoiner) supplier.get(),
+                StringJoiner::add,
+                StringJoiner::merge,
+                StringJoiner::toString
+        );
+
         String nameAsCsv = customerList.stream().map(Customer::getName).collect(toCsv);
         assertThat(nameAsCsv, is("Joe,Steven,Patrick,Diana,Chris,Kathy,Alice,Andrew,Martin,Amy"));
     }
@@ -57,13 +64,26 @@ public class Exercise9Test extends ClassicOnlineStore {
          * values as {@link Set} of customers who are wanting to buy that item.
          * The collector will be used by parallel stream.
          */
+        Collector<Customer, Map<String, Set<String>>, Map<String, Set<String>>> toItemAsKey = Collector.of(
+                HashMap::new,
+                (map, customer) -> {
+                    for (Item item : customer.getWantToBuy()) {
+                        map.computeIfAbsent(item.getName(), k -> new HashSet<>()).add(customer.getName());
+                    }
+                },
+                (map1, map2) -> {
+                    map2.forEach((item, customers) -> {
+                        map1.merge(item, customers, (set1, set2) -> {
+                            set1.addAll(set2);
+                            return set1;
+                        });
+                    });
+                    return map1;
+                }
+        );
 
-
-
-        Collector<Customer, ?, Map<String, Set<String>>> toItemAsKey = null;
         Map<String, Set<String>> itemMap =
                 customerList.stream().parallel().collect(toItemAsKey);
-
 
         assertThat(itemMap.get("plane"), containsInAnyOrder("Chris"));
         assertThat(itemMap.get("onion"), containsInAnyOrder("Patrick", "Amy"));
