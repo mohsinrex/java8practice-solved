@@ -5,26 +5,17 @@ import common.test.tool.annotation.Easy;
 import common.test.tool.dataset.ClassicOnlineStore;
 import common.test.tool.entity.Customer;
 import common.test.tool.entity.Item;
-import common.test.tool.util.CollectorImpl;
 
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
-import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -37,21 +28,16 @@ public class Exercise9Test extends ClassicOnlineStore {
     public void simplestStringJoin() {
         List<Customer> customerList = this.mall.getCustomerList();
 
-        /**
-         * Implement a {@link Collector} which can create a String with comma separated names shown in the assertion.
-         * The collector will be used by serial stream.
-         */
-        Supplier<Object> supplier = () -> new StringJoiner(",");
-
-        Collector<String, StringJoiner, String> toCsv = Collector.of(
-                () -> (StringJoiner) supplier.get(),
+        Supplier<Object> joinSupplier = () -> new StringJoiner(",");
+        Collector<String, StringJoiner, String> joinCollector = Collector.of(
+                () -> (StringJoiner) joinSupplier.get(),
                 StringJoiner::add,
                 StringJoiner::merge,
                 StringJoiner::toString
         );
 
-        String nameAsCsv = customerList.stream().map(Customer::getName).collect(toCsv);
-        assertThat(nameAsCsv, is("Joe,Steven,Patrick,Diana,Chris,Kathy,Alice,Andrew,Martin,Amy"));
+        String output = customerList.stream().map(Customer::getName).collect(joinCollector);
+        assertThat(output, is("Joe,Steven,Patrick,Diana,Chris,Kathy,Alice,Andrew,Martin,Amy"));
     }
 
     @Difficult
@@ -59,21 +45,16 @@ public class Exercise9Test extends ClassicOnlineStore {
     public void mapKeyedByItems() {
         List<Customer> customerList = this.mall.getCustomerList();
 
-        /**
-         * Implement a {@link Collector} which can create a {@link Map} with keys as item and
-         * values as {@link Set} of customers who are wanting to buy that item.
-         * The collector will be used by parallel stream.
-         */
-        Collector<Customer, Map<String, Set<String>>, Map<String, Set<String>>> toItemAsKey = Collector.of(
+        Collector<Customer, Map<String, Set<String>>, Map<String, Set<String>>> itemCollector = Collector.of(
                 HashMap::new,
-                (map, customer) -> {
-                    for (Item item : customer.getWantToBuy()) {
-                        map.computeIfAbsent(item.getName(), k -> new HashSet<>()).add(customer.getName());
+                (map, cust) -> {
+                    for (Item it : cust.getWantToBuy()) {
+                        map.computeIfAbsent(it.getName(), k -> new HashSet<>()).add(cust.getName());
                     }
                 },
                 (map1, map2) -> {
-                    map2.forEach((item, customers) -> {
-                        map1.merge(item, customers, (set1, set2) -> {
+                    map2.forEach((k, v) -> {
+                        map1.merge(k, v, (set1, set2) -> {
                             set1.addAll(set2);
                             return set1;
                         });
@@ -82,17 +63,15 @@ public class Exercise9Test extends ClassicOnlineStore {
                 }
         );
 
-        Map<String, Set<String>> itemMap =
-                customerList.stream().parallel().collect(toItemAsKey);
+        Map<String, Set<String>> resultMap = customerList.stream().parallel().collect(itemCollector);
 
-        assertThat(itemMap.get("plane"), containsInAnyOrder("Chris"));
-        assertThat(itemMap.get("onion"), containsInAnyOrder("Patrick", "Amy"));
-        assertThat(itemMap.get("ice cream"), containsInAnyOrder("Patrick", "Steven"));
-        assertThat(itemMap.get("earphone"), containsInAnyOrder("Steven"));
-        assertThat(itemMap.get("plate"), containsInAnyOrder("Joe", "Martin"));
-        assertThat(itemMap.get("fork"), containsInAnyOrder("Joe", "Martin"));
-        assertThat(itemMap.get("cable"), containsInAnyOrder("Diana", "Steven"));
-        assertThat(itemMap.get("desk"), containsInAnyOrder("Alice"));
+        assertThat(resultMap.get("plane"), containsInAnyOrder("Chris"));
+        assertThat(resultMap.get("onion"), containsInAnyOrder("Patrick", "Amy"));
+        assertThat(resultMap.get("ice cream"), containsInAnyOrder("Patrick", "Steven"));
+        assertThat(resultMap.get("earphone"), containsInAnyOrder("Steven"));
+        assertThat(resultMap.get("plate"), containsInAnyOrder("Joe", "Martin"));
+        assertThat(resultMap.get("fork"), containsInAnyOrder("Joe", "Martin"));
+        assertThat(resultMap.get("cable"), containsInAnyOrder("Diana", "Steven"));
+        assertThat(resultMap.get("desk"), containsInAnyOrder("Alice"));
     }
-
 }

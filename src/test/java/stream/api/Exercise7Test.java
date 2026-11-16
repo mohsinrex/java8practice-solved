@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.OptionalDouble;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
@@ -23,14 +22,10 @@ public class Exercise7Test extends ClassicOnlineStore {
     public void averageAge() {
         List<Customer> customerList = this.mall.getCustomerList();
 
-        /**
-         * Create {@link IntStream} with customer ages by using {@link Stream#mapToInt}
-         * Then calculate the average of ages by using {@link IntStream#average}
-         */
-        IntStream ageStream = customerList.stream().mapToInt(Customer::getAge);
-        OptionalDouble average = ageStream.average();
+        IntStream ages = customerList.stream().mapToInt(Customer::getAge);
+        OptionalDouble avgAge = ages.average();
 
-        assertThat(average.getAsDouble(), is(28.7));
+        assertThat(avgAge.getAsDouble(), is(28.7));
     }
 
     @Easy
@@ -38,15 +33,12 @@ public class Exercise7Test extends ClassicOnlineStore {
     public void howMuchToBuyAllItems() {
         List<Shop> shopList = this.mall.getShopList();
 
-        /**
-         * Create {@link LongStream} with all items' prices using {@link Stream#mapToLong}
-         * Then calculate the sum of prices using {@link LongStream#sum}
-         */
-        LongStream priceStream = shopList.stream()
-                .flatMap(shop -> shop.getItemList().stream())
-                .mapToLong(item -> item.getPrice());
-        long priceSum = priceStream.sum();
+        LongStream prices = shopList.stream()
+                .flatMap(s -> s.getItemList().stream())
+                .mapToLong(i -> i.getPrice());
 
-        assertThat(priceSum, is(60930L));
+        long totalCost = prices.sum();
+
+        assertThat(totalCost, is(60930L));
     }
 }

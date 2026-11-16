@@ -6,17 +6,11 @@ import common.test.tool.entity.Customer;
 import common.test.tool.entity.Item;
 import common.test.tool.entity.Shop;
 
-import java.util.Comparator;
-
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -32,23 +26,19 @@ public class Exercise8Test extends ClassicOnlineStore {
         Stream<Customer> customerStream = this.mall.getCustomerList().stream();
         Stream<Shop> shopStream = this.mall.getShopList().stream();
 
-        /**
-         * Create a set of item names that are in {@link Customer.wantToBuy} but not on sale in any shop.
-         */
-        List<String> itemListOnSale = shopStream
-                .flatMap(shop -> shop.getItemList().stream())
+        List<String> availableItems = shopStream
+                .flatMap(s -> s.getItemList().stream())
                 .map(Item::getName)
                 .collect(Collectors.toList());
 
-        Set<String> itemSetNotOnSale = customerStream
-                .flatMap(customer -> customer.getWantToBuy().stream())
+        Set<String> unavailableItems = customerStream
+                .flatMap(c -> c.getWantToBuy().stream())
                 .map(Item::getName)
-                .filter(itemName -> !itemListOnSale.contains(itemName))
+                .filter(name -> !availableItems.contains(name))
                 .collect(Collectors.toSet());
 
-        assertThat(itemSetNotOnSale, hasSize(3));
-        assertThat(itemSetNotOnSale, hasItems("bag", "pants", "coat"));
-
+        assertThat(unavailableItems, hasSize(3));
+        assertThat(unavailableItems, hasItems("bag", "pants", "coat"));
     }
 
     @Difficult
@@ -57,30 +47,25 @@ public class Exercise8Test extends ClassicOnlineStore {
         Stream<Customer> customerStream = this.mall.getCustomerList().stream();
         Stream<Shop> shopStream = this.mall.getShopList().stream();
 
-        /**
-         * Create a customer's name list including who are having enough money to buy all items they want which is on sale.
-         * Items that are not on sale can be counted as 0 money cost.
-         * If there is several same items with different prices, customer can choose the cheapest one.
-         */
-        Map<String, Integer> cheapestPrices = shopStream
-                .flatMap(shop -> shop.getItemList().stream())
+        Map<String, Integer> lowestPrices = shopStream
+                .flatMap(s -> s.getItemList().stream())
                 .collect(Collectors.toMap(
                         Item::getName,
                         Item::getPrice,
                         Math::min
                 ));
 
-        List<String> customerNameList = customerStream
-                .filter(customer -> {
-                    int totalCost = customer.getWantToBuy().stream()
-                            .mapToInt(item -> cheapestPrices.getOrDefault(item.getName(), 0))
+        List<String> affordableBuyers = customerStream
+                .filter(c -> {
+                    int requiredMoney = c.getWantToBuy().stream()
+                            .mapToInt(i -> lowestPrices.getOrDefault(i.getName(), 0))
                             .sum();
-                    return customer.getBudget() >= totalCost;
+                    return c.getBudget() >= requiredMoney;
                 })
                 .map(Customer::getName)
                 .collect(Collectors.toList());
 
-        assertThat(customerNameList, hasSize(7));
-        assertThat(customerNameList, hasItems("Joe", "Patrick", "Chris", "Kathy", "Alice", "Andrew", "Amy"));
+        assertThat(affordableBuyers, hasSize(7));
+        assertThat(affordableBuyers, hasItems("Joe", "Patrick", "Chris", "Kathy", "Alice", "Andrew", "Amy"));
     }
 }
